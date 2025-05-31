@@ -2,18 +2,22 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Group, Expense, ExpenseShare
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
+
 class GroupSerializer(serializers.ModelSerializer):
-    members = UserSerializer(many=True, read_only=True)
     created_by = UserSerializer(read_only=True)
+    members = UserSerializer(many=True, read_only=True)
 
     class Meta:
         model = Group
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'created_by', 'members', 'created_at']
+        read_only_fields = ['created_by', 'created_at']
+
 
 class ExpenseSerializer(serializers.ModelSerializer):
     paid_by = UserSerializer(read_only=True)
@@ -21,4 +25,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Expense
-        fields = '__all__'
+        fields = ['id', 'title', 'amount', 'paid_by', 'group', 'participants', 'date', 'description']
+        read_only_fields = ['paid_by', 'date']
+
+
+class ExpenseShareSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ExpenseShare
+        fields = ['expense', 'user', 'amount_owed']
