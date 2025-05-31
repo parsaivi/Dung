@@ -6,14 +6,25 @@ import '../App.css';
 const API_BASE = 'http://localhost:8000/api';
 
 function App({onLogout}) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [expenses, setExpenses] = useState([]);
 
   // Fetch groups when component loads
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`;
+      // Verify token is still valid
+      verifyToken();
+      // Fetch groups after token verification
+      fetchGroups();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
 
   const fetchGroups = async () => {
     try {
@@ -22,6 +33,18 @@ function App({onLogout}) {
     } catch (error) {
       console.error('Error fetching groups:', error);
     }
+  };
+  const verifyToken = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/auth/profile/`);
+      setUser(response.data.user);
+    } catch (error) {
+      // Token is invalid, remove it
+      localStorage.removeItem('token');
+      setToken(null);
+      delete axios.defaults.headers.common['Authorization'];
+    }
+    setLoading(false);
   };
 
   const fetchExpenses = async (groupId) => {
@@ -44,11 +67,6 @@ function App({onLogout}) {
       console.error('Error creating group:', error);
     }
   };
-
-  const logout = () => {//pass it to App.js
-    localStorage.removeItem('token');
-    window.location.reload(); // Reload to reset state
-  }
 
   return (
     <div className="App">

@@ -232,45 +232,6 @@ function GroupList({ groups, onGroupSelect, onCreateGroup }) {
   );
 }
 
-// Component to show group details and expenses
-function GroupDetail({ group, expenses, onExpenseAdded }) {
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-
-  return (
-    <div>
-      <h2>{group.name}</h2>
-      <p>{group.description}</p>
-
-      <div className="expenses-section">
-        <div className="expenses-header">
-          <h3>Expenses</h3>
-          <button onClick={() => setShowExpenseForm(!showExpenseForm)}>
-            {showExpenseForm ? 'Cancel' : 'Add Expense'}
-          </button>
-        </div>
-
-        {showExpenseForm && (
-          <ExpenseForm
-            groupId={group.id}
-            onExpenseAdded={onExpenseAdded}
-            onCancel={() => setShowExpenseForm(false)}
-          />
-        )}
-
-        <div className="expenses-list">
-          {expenses.map(expense => (
-            <div key={expense.id} className="expense-item">
-              <h4>{expense.title}</h4>
-              <p>${expense.amount}</p>
-              <p>Paid by: {expense.paid_by.username}</p>
-              <p>{new Date(expense.date).toLocaleDateString()}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Form to add new expenses
 function ExpenseForm({ groupId, onExpenseAdded, onCancel }) {

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -6,14 +6,14 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from .models import Group, Expense
+from .models import Group, Expense, ExpenseShare
 from .serializers import GroupSerializer, ExpenseSerializer, UserSerializer
-
 
 # Authentication Views
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
+    print("Debug")
     username = request.data.get('username')
     password = request.data.get('password')
 
@@ -134,6 +134,34 @@ class GroupViewSet(viewsets.ModelViewSet):
             return Response({'error': 'User not found'},
                             status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['get'])
+    def balances(self, request, pk=None):
+        """Get balance summary for all members in the group"""
+        group = self.get_object()
+        balances = []
+
+        for member in group.members.all():
+            balance = group.get_member_balance(member)
+            balances.append({
+                'user': UserSerializer(member).data,
+                'balance': str(balance),
+                'status': 'owes' if balance < 0 else 'owed' if balance > 0 else 'settled'
+            })
+
+        return Response({
+            'group': group.name,
+            'total_expenses': str(group.get_total_expenses()),
+            'balances': balances
+        })
+
+    @action(detail=True, methods=['get'])
+    def expenses(self, request, pk=None):
+        """Get all expenses for this group"""
+        group = self.get_object()
+        expenses = Expense.objects.filter(group=group).order_by('-date')
+        serializer = ExpenseSerializer(expenses, many=True)
+        return Response(serializer.data)
+
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseSerializer
@@ -154,4 +182,27 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return queryset.distinct()
 
     def perform_create(self, serializer):
-        serializer.save(paid_by=self.request.user)
+        # Validate that user is member of the group
+        group = serializer.validated_data['group']
+        if not group.members.filter(id=self.request.user.id).exists():
+            raise serializers.ValidationError("You are not a member of this group")
+
+        # Save expense with current user as payer
+        expense = serializer.save(paid_by=self.request.user, group=group, amount=serializer.validated_data.get('Amount'))
+
+        # Automatically add all group members as participants
+        expense.participants.set(group.members.all())
+
+        # Calculate equal split among all participants
+        total_participants = group.members.count()
+        amount_per_person = expense.amount / total_participants
+
+        # Create ExpenseShare records for each participant
+        for member in group.members.all():
+            ExpenseShare.objects.create(
+                expense=expense,
+                user=member,
+                amount_owed=amount_per_person
+            )
+
+        return expense

@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'dung_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'dung_db',
         'USER': 'dung_user',
         'PASSWORD': 'dung_password',
