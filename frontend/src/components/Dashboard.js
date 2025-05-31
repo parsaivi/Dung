@@ -5,7 +5,7 @@ import '../App.css';
 // API base URL
 const API_BASE = 'http://localhost:8000/api';
 
-function App() {
+function App({onLogout}) {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [expenses, setExpenses] = useState([]);
@@ -45,10 +45,16 @@ function App() {
     }
   };
 
+  const logout = () => {//pass it to App.js
+    localStorage.removeItem('token');
+    window.location.reload(); // Reload to reset state
+  }
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Dung - Split Expenses</h1>
+        <button onClick={onLogout} className="logout-button"> Logout</button>
       </header>
 
       <div className="container">
@@ -75,6 +81,7 @@ function App() {
             <div>Select a group to view expenses</div>
           )}
         </div>
+
       </div>
     </div>
   );
