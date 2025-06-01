@@ -45,7 +45,7 @@ function App({onLogout}) {
 
   const fetchFriends = async () => {
       try {
-          const response = await axios.get('${API_BASE}/friends/');
+          const response = await axios.get(`${API_BASE}/friends/`);
           setFriends(response.data);
       } catch (error){
           console.error('Error fetching friends:', error);
