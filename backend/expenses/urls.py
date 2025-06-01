@@ -6,6 +6,7 @@ router = DefaultRouter()
 router.register(r'groups', views.GroupViewSet, basename='group')
 router.register(r'expenses', views.ExpenseViewSet, basename='expense')
 router.register(r'friends', views.FriendViewSet, basename='friend')
+router.register(r'friendrequests', views.FriendRequestsViewSet, basename='friendRequest')
 
 urlpatterns = [
     path('auth/login/', views.login_view, name='login'),

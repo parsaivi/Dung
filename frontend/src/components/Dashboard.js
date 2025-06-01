@@ -3,6 +3,7 @@ import axios from 'axios';
 import GroupList from './GroupList';
 import GroupDetail from './GroupDetails';
 import FriendList from './FriendList';
+import FriendRequestList from './FriendRequestList';
 import '../App.css';
 
 // API base URL
@@ -14,6 +15,7 @@ function App({onLogout}) {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [expenses, setExpenses] = useState([]);
 
@@ -26,6 +28,7 @@ function App({onLogout}) {
       // Fetch groups after token verification
       fetchGroups();
       fetchFriends();
+      fetchFriendRequests();
     } else {
       setLoading(false);
     }
@@ -48,6 +51,16 @@ function App({onLogout}) {
           console.error('Error fetching friends:', error);
       }
   };
+
+  const fetchFriendRequests = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/friendrequests/`);
+      setFriendRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+    }
+  };
+
   const verifyToken = async () => {
     try {
       const response = await axios.get(`${API_BASE}/auth/profile/`);
@@ -134,6 +147,10 @@ function App({onLogout}) {
                     onJoinGroup={(link) => {
                       joinGroup(link);
                     }}
+                />
+            <h2>Requests</h2>
+                <FriendRequestList
+
                 />
             <h2>Friends</h2>
                 <FriendList

@@ -298,3 +298,42 @@ class FriendViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'},
                             status=status.HTTP_404_NOT_FOUND)
+
+
+class FriendRequestsViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return FriendRequest.objects.filter(to_user=self.request.user, accepted=False)
+
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        """Accept a friend request"""
+        try:
+            friend_request = self.get_object()
+            if friend_request.to_user != request.user:
+                return Response({'error': 'You cannot accept this request'},
+                                status=status.HTTP_403_FORBIDDEN)
+            friend_request.accepted = True
+            friend_request.save()
+            Friend.objects.create(user=request.user, friend=friend_request.from_user)
+            Friend.objects.create(user=friend_request.from_user, friend=request.user)
+            return Response({'message': 'Friend request accepted'})
+        except FriendRequest.DoesNotExist:
+            return Response({'error': 'Friend request not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject a friend request"""
+        try:
+            friend_request = self.get_object()
+            if friend_request.to_user != request.user:
+                return Response({'error': 'You cannot reject this request'},
+                                status=status.HTTP_403_FORBIDDEN)
+            friend_request.delete()
+            return Response({'message': 'Friend request rejected'})
+        except FriendRequest.DoesNotExist:
+            return Response({'error': 'Friend request not found'},
+                            status=status.HTTP_404_NOT_FOUND)
