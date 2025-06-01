@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'groups', views.GroupViewSet, basename='group')
 router.register(r'expenses', views.ExpenseViewSet, basename='expense')
+router.register(r'friends', views.FriendViewSet, basename='friend')
 
 urlpatterns = [
     path('auth/login/', views.login_view, name='login'),

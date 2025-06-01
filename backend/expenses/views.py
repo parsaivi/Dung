@@ -268,3 +268,29 @@ def join_group(request):
     except Group.DoesNotExist:
         return Response({'error': 'Group not found'},
                         status=status.HTTP_404_NOT_FOUND)
+
+
+class FriendViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Return friends of the authenticated user
+        return User.objects.filter(
+            Q(groups__members=self.request.user) |
+            Q(id=self.request.user.id)
+        ).distinct()
+
+    @action(detail=True, methods=['post'])
+    def add_friend(self, request, pk=None):
+        """Add a user as a friend"""
+        try:
+            friend = User.objects.get(id=pk)
+            if friend == request.user:
+                return Response({'error': 'You cannot add yourself as a friend'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            request.user.groups.add(friend)
+            return Response({'message': 'Friend added successfully'})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'},
+                            status=status.HTTP_404_NOT_FOUND)

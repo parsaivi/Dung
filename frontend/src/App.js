@@ -53,13 +53,13 @@ function App() {
         password
       });
 
-      const { token: newToken, user: userData } = response.data;
+      const {token: newToken, user: userData} = response.data;
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
       axios.defaults.headers.common['Authorization'] = `Token ${newToken}`;
 
-      return { success: true };
+      return {success: true};
     } catch (error) {
       return {
         success: false,
@@ -72,13 +72,13 @@ function App() {
     try {
       const response = await axios.post(`${API_BASE}/auth/register/`, userData);
 
-      const { token: newToken, user: newUser } = response.data;
+      const {token: newToken, user: newUser} = response.data;
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(newUser);
       axios.defaults.headers.common['Authorization'] = `Token ${newToken}`;
 
-      return { success: true };
+      return {success: true};
     } catch (error) {
       return {
         success: false,
@@ -87,7 +87,7 @@ function App() {
     }
   };
 
-   const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       await axios.post(`${API_BASE}/auth/logout/`);
     } catch (error) {
@@ -102,215 +102,20 @@ function App() {
 
   if (loading) {
     return (
-      <div className="App">
-        <div className="loading">Loading...</div>
-      </div>
+        <div className="App">
+          <div className="loading">Loading...</div>
+        </div>
     );
   }
 
-  const fetchExpenses = async (groupId) => {
-    try {
-      const response = await axios.get(`${API_BASE}/expenses/?group=${groupId}`);
-      setExpenses(response.data);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-    }
-  };
-
-  const createGroup = async (name, description) => {
-    try {
-      const response = await axios.post(`${API_BASE}/groups/`, {
-        name,
-        description
-      });
-      fetchGroups(); // Refresh the list
-    } catch (error) {
-      console.error('Error creating group:', error);
-    }
-  };
-
   return (
-    <div className="App">
-      {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
-      ) : (
-        <AuthForm onLogin={handleLogin} onRegister={handleRegister} />
-      )}
-    </div>
-  );
-
-  // return (
-  //   <div className="App">
-  //     <header className="App-header">
-  //       <h1>Dung - Split Expenses</h1>
-  //     </header>
-  //
-  //     <div className="container">
-  //       <div className="sidebar">
-  //         <h2>Groups</h2>
-  //         <GroupList
-  //           groups={groups}
-  //           onGroupSelect={(group) => {
-  //             setSelectedGroup(group);
-  //             fetchExpenses(group.id);
-  //           }}
-  //           onCreateGroup={createGroup}
-  //         />
-  //       </div>
-  //
-  //       <div className="main-content">
-  //         {selectedGroup ? (
-  //           <GroupDetail
-  //             group={selectedGroup}
-  //             expenses={expenses}
-  //             onExpenseAdded={() => fetchExpenses(selectedGroup.id)}
-  //           />
-  //         ) : (
-  //           <div>Select a group to view expenses</div>
-  //         )}
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-}
-
-// Component to display list of groups
-function GroupList({ groups, onGroupSelect, onCreateGroup, onJoinGroup }) {
-  const [showType, setShowType] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupDesc, setNewGroupDesc] = useState('');
-  const [groupLink, setGroupLink] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onCreateGroup(newGroupName, newGroupDesc);
-    setNewGroupName('');
-    setNewGroupDesc('');
-    setGroupLink('');
-    setShowForm(false);
-    setShowType(false);
-  };
-
-  const handleSubmitJoin = (e) => {
-    e.preventDefault();
-    onJoinGroup(groupLink);
-    setNewGroupName('');
-    setNewGroupDesc('');
-    setGroupLink('');
-    setShowForm(false);
-    setShowType(false);
-  };
-
-  return (
-      <div>
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : 'New Group'}
-          {setShowType(false)}
-        </button>
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Cancel' : 'Join Group'}
-          {setShowType(true)}
-        </button>
-
-        {showForm && !showType && (
-            <form onSubmit={handleSubmitJoin} className="group-form">
-              <input
-                  type="text"
-                  placeholder="Group name"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  required
-              />
-              <textarea
-                  placeholder="Description"
-                  value={newGroupDesc}
-                  onChange={(e) => setNewGroupDesc(e.target.value)}
-              />
-              <button type="submit">Create Group</button>
-            </form>
+      <div className="App">
+        {user ? (
+            <Dashboard user={user} onLogout={handleLogout}/>
+        ) : (
+            <AuthForm onLogin={handleLogin} onRegister={handleRegister}/>
         )}
-
-        {showForm && showType && (
-            <form onSubmit={handleSubmit} className="group-form">
-              <input
-                  type="text"
-                  placeholder="Group link"
-                  value={groupLink}
-                  onChange={(e) => setGroupLink(e.target.value)}
-                  required
-              />
-              <button type="submit">Join Group</button>
-            </form>
-        )}
-
-        <div className="groups-list">
-          {groups.map(group => (
-              <div
-                  key={group.id}
-                  className="group-item"
-                  onClick={() => onGroupSelect(group)}
-              >
-                <h3>{group.name}</h3>
-                <p>{group.description}</p>
-              </div>
-          ))}
-        </div>
       </div>
   );
 }
-
-
-// Form to add new expenses
-function ExpenseForm({groupId, onExpenseAdded, onCancel}) {
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API_BASE}/expenses/`, {
-        title,
-        amount: parseFloat(amount),
-        description,
-        group: groupId
-      });
-      onExpenseAdded();
-      onCancel();
-    } catch (error) {
-      console.error('Error creating expense:', error);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="expense-form">
-      <input
-        type="text"
-        placeholder="Expense title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-      />
-      <input
-        type="number"
-        step="0.01"
-        placeholder="Amount"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        required
-      />
-      <textarea
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-      <div className="form-buttons">
-        <button type="submit">Add Expense</button>
-        <button type="button" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
-}
-
 export default App;
