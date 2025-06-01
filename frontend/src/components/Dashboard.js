@@ -116,9 +116,9 @@ function App({onLogout}) {
         });
   };
 
-  const addFriend = (id) =>{
-    if (!id) return;
-    axios.post(`${API_BASE}/friends/add/`, {user_id: id})
+  const addFriend = (username) =>{
+    if (!username) return;
+    axios.post(`${API_BASE}/friends/add_friend/`, {username: username})
         .then(() =>{
             fetchFriends()
         })
@@ -131,6 +131,7 @@ function App({onLogout}) {
       <div className="App">
         <header className="App-header">
           <h1>Dung - Split Expenses</h1>
+            {user && <p>Username: {user.username}-{user.id}</p>}
           <button onClick={onLogout} className="logout-button"> Logout</button>
         </header>
 
@@ -150,7 +151,21 @@ function App({onLogout}) {
                 />
             <h2>Requests</h2>
                 <FriendRequestList
-
+                    user={user}
+                    requests={friendRequests}
+                    onAccept={(requestId) => {
+                      axios.post(`${API_BASE}/friendrequests/accept/`, {id: requestId})
+                          .then(() => {
+                              fetchFriendRequests();
+                              fetchFriends();
+                          })
+                          .catch(error => console.error('Error accepting request:', error));
+                    }}
+                    onReject={(requestId) => {
+                      axios.post(`${API_BASE}/friendrequests/reject/`, {id: requestId})
+                          .then(() => fetchFriendRequests())
+                          .catch(error => console.error('Error rejecting request:', error));
+                    }}
                 />
             <h2>Friends</h2>
                 <FriendList
@@ -158,10 +173,9 @@ function App({onLogout}) {
                     friends={friends}
                     onFriendSelected={(friend) => {
                       setSelectedGroup(friend);
-                      fetchExpenses(friend.id);
                     }}
-                    onAddFriend={(id) =>{
-                        addFriend(id);
+                    onAddFriend={(username) =>{
+                        addFriend(username);
                     }}
                 />
 

@@ -13,14 +13,13 @@ function FriendRequestList({user, requests, onAccept, onReject}) {
 
     return (
         <div className="friend-request-list">
-            <h3>Friend Requests</h3>
             {requests.length === 0 ? (
                 <p>No friend requests</p>
             ) : (
                 <ul>
                     {requests.map(request => (
                         <li key={request.id}>
-                            {request.sender.username}
+                            {request.from_user.username}
                             <button onClick={() => handleAccept(request.id)}>Accept</button>
                             <button onClick={() => handleReject(request.id)}>Reject</button>
                         </li>

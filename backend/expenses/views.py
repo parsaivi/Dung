@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from .models import Group, Expense, ExpenseShare, Friend, FriendRequest
-from .serializers import GroupSerializer, ExpenseSerializer, UserSerializer
+from .serializers import GroupSerializer, ExpenseSerializer, UserSerializer, FriendRequestSerializer
 
 # Authentication Views
 @api_view(['POST'])
@@ -253,23 +253,6 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
         return expense
 
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def join_group(request):
-    try:
-        group_id = request.data.get('group_id')
-        group = Group.objects.get(id=group_id)
-        if request.user in group.members.all():
-            return Response({'message': 'You are already a member of this group'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        group.members.add(request.user)
-        return Response({'message': 'Successfully joined the group'})
-    except Group.DoesNotExist:
-        return Response({'error': 'Group not found'},
-                        status=status.HTTP_404_NOT_FOUND)
-
-
 class FriendViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
@@ -282,11 +265,20 @@ class FriendViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def add_friend(self, request, pk=None):
         """Add a user as a friend"""
-        friend_id = request.data.get('user_id')
+        friend_username = request.data.get('username')
+        if not friend_username:
+            return Response({'error': 'Username is required'},
+                            status=status.HTTP_400_BAD_REQUEST)
         try:
-            friend = User.objects.get(id=friend_id)
+            friend = User.objects.get(username=friend_username)
             if friend == request.user:
                 return Response({'error': 'You cannot add yourself as a friend'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if FriendRequest.objects.filter(from_user=request.user, to_user=friend, accepted=False).exists():
+                return Response({'error': 'Friend request already sent'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if FriendRequest.objects.filter(from_user=friend, to_user=request.user, accepted=False).exists():
+                return Response({'error': 'You have a pending friend request from this user'},
                                 status=status.HTTP_400_BAD_REQUEST)
             if Friend.objects.filter(user=request.user, friend=friend).exists():
                 return Response({'error': 'This user is already your friend'},
@@ -295,23 +287,29 @@ class FriendViewSet(viewsets.ModelViewSet):
                 from_user=request.user,
                 to_user=friend,
             )
+            return Response({'message': 'Friend request sent'})
         except User.DoesNotExist:
             return Response({'error': 'User not found'},
                             status=status.HTTP_404_NOT_FOUND)
 
 
+
 class FriendRequestsViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
+    serializer_class = FriendRequestSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return FriendRequest.objects.filter(to_user=self.request.user, accepted=False)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=False, methods=['post'])
     def accept(self, request, pk=None):
         """Accept a friend request"""
         try:
-            friend_request = self.get_object()
+            request_id = request.data.get('id')
+            if not request_id:
+                return Response({'error': 'Request ID is required'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            friend_request = FriendRequest.objects.get(id=request_id)
             if friend_request.to_user != request.user:
                 return Response({'error': 'You cannot accept this request'},
                                 status=status.HTTP_403_FORBIDDEN)
@@ -324,11 +322,15 @@ class FriendRequestsViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Friend request not found'},
                             status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=False, methods=['post'])
     def reject(self, request, pk=None):
         """Reject a friend request"""
         try:
-            friend_request = self.get_object()
+            request_id = request.data.get('id')
+            if not request_id:
+                return Response({'error': 'Request ID is required'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            friend_request = FriendRequest.objects.get(id=request_id)
             if friend_request.to_user != request.user:
                 return Response({'error': 'You cannot reject this request'},
                                 status=status.HTTP_403_FORBIDDEN)

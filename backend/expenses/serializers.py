@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Group, Expense, ExpenseShare
+from .models import Group, Expense, ExpenseShare, FriendRequest
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -35,3 +35,13 @@ class ExpenseShareSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExpenseShare
         fields = ['expense', 'user', 'amount_owed']
+
+
+class FriendRequestSerializer(serializers.ModelSerializer):
+    from_user = UserSerializer(read_only=True)
+    to_user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'from_user', 'to_user', 'created_at', 'accepted']
+        read_only_fields = ['from_user', 'to_user', 'created_at']
