@@ -6,7 +6,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from .models import Group, Expense, ExpenseShare
+from .models import Group, Expense, ExpenseShare, Friend, FriendRequest
 from .serializers import GroupSerializer, ExpenseSerializer, UserSerializer
 
 # Authentication Views
@@ -275,22 +275,26 @@ class FriendViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Return friends of the authenticated user
-        return User.objects.filter(
-            Q(groups__members=self.request.user) |
-            Q(id=self.request.user.id)
-        ).distinct()
+        friends_obj = Friend.objects.filter(user=self.request.user)
+        friends = [friend.friend for friend in friends_obj]
+        return User.objects.filter(id__in=[friend.id for friend in friends])
 
-    @action(detail=True, methods=['post'])
+    @action(detail=False, methods=['post'])
     def add_friend(self, request, pk=None):
         """Add a user as a friend"""
+        friend_id = request.data.get('user_id')
         try:
-            friend = User.objects.get(id=pk)
+            friend = User.objects.get(id=friend_id)
             if friend == request.user:
                 return Response({'error': 'You cannot add yourself as a friend'},
                                 status=status.HTTP_400_BAD_REQUEST)
-            request.user.groups.add(friend)
-            return Response({'message': 'Friend added successfully'})
+            if Friend.objects.filter(user=request.user, friend=friend).exists():
+                return Response({'error': 'This user is already your friend'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            FriendRequest.objects.create(
+                from_user=request.user,
+                to_user=friend,
+            )
         except User.DoesNotExist:
             return Response({'error': 'User not found'},
                             status=status.HTTP_404_NOT_FOUND)
