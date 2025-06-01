@@ -13,7 +13,6 @@ from .serializers import GroupSerializer, ExpenseSerializer, UserSerializer
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    print("Debug")
     username = request.data.get('username')
     password = request.data.get('password')
 
@@ -122,10 +121,39 @@ class GroupViewSet(viewsets.ModelViewSet):
         # Automatically add creator as a member
         group.members.add(self.request.user)
 
+    @action(detail=False, methods=['post'])
+    def join(self, request, pk=None):
+        group_id = request.data.get('group_id')
+        user = request.user
+        if not group_id:
+            return Response({'error': 'Group ID is required'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            return Response({'error': 'Group not found'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if user in group.members.all():
+            return Response({'message': 'You are already a member of this group'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        group.members.add(user)
+        return Response({'message': 'Successfully joined the group'})
+
     @action(detail=True, methods=['post'])
     def add_member(self, request, pk=None):
         group = self.get_object()
         username = request.data.get('username')
+        added_by = request.user
+
+        if not username:
+            return Response({'error': 'Username is required'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if group.created_by != added_by:
+            return Response({'error': 'Only the group creator can add members'},
+                            status=status.HTTP_403_FORBIDDEN)
+
         try:
             user = User.objects.get(username=username)
             group.members.add(user)
@@ -162,6 +190,13 @@ class GroupViewSet(viewsets.ModelViewSet):
         serializer = ExpenseSerializer(expenses, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def details(self, request, pk=None):
+        """Get detailed information about the group"""
+        group = self.get_object()
+        serializer = self.get_serializer(group)
+        return Response(serializer.data)
+
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseSerializer
@@ -181,21 +216,32 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(group__members=self.request.user)
         return queryset.distinct()
 
+    @action(detail=True, methods=['post'])
     def perform_create(self, serializer):
         # Validate that user is member of the group
         group = serializer.validated_data['group']
         if not group.members.filter(id=self.request.user.id).exists():
             raise serializers.ValidationError("You are not a member of this group")
+        amount = serializer.validated_data.get('amount')
+        if not amount:
+            raise serializers.ValidationError("Amount is required")
+        if amount <= 0:
+            raise serializers.ValidationError("Amount must be greater than zero")
 
+        print("debuggg")
         # Save expense with current user as payer
-        expense = serializer.save(paid_by=self.request.user, group=group, amount=serializer.validated_data.get('Amount'))
+        expense = serializer.save(paid_by=self.request.user, group=group, amount=amount)
 
         # Automatically add all group members as participants
         expense.participants.set(group.members.all())
 
         # Calculate equal split among all participants
         total_participants = group.members.count()
-        amount_per_person = expense.amount / total_participants
+
+        if total_participants > 0:
+            amount_per_person = expense.amount / total_participants
+        else:
+            raise serializers.ValidationError("Group must have at least one member")
 
         # Create ExpenseShare records for each participant
         for member in group.members.all():
@@ -206,3 +252,19 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             )
 
         return expense
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def join_group(request):
+    try:
+        group_id = request.data.get('group_id')
+        group = Group.objects.get(id=group_id)
+        if request.user in group.members.all():
+            return Response({'message': 'You are already a member of this group'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        group.members.add(request.user)
+        return Response({'message': 'Successfully joined the group'})
+    except Group.DoesNotExist:
+        return Response({'error': 'Group not found'},
+                        status=status.HTTP_404_NOT_FOUND)

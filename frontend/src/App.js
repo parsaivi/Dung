@@ -12,10 +12,6 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // const [groups, setGroups] = useState([]);
-  // const [selectedGroup, setSelectedGroup] = useState(null);
-  // const [expenses, setExpenses] = useState([]);
-
   // Fetch groups when component loads
   useEffect(() => {
     if (token) {
@@ -179,62 +175,94 @@ function App() {
 }
 
 // Component to display list of groups
-function GroupList({ groups, onGroupSelect, onCreateGroup }) {
+function GroupList({ groups, onGroupSelect, onCreateGroup, onJoinGroup }) {
+  const [showType, setShowType] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [groupLink, setGroupLink] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onCreateGroup(newGroupName, newGroupDesc);
     setNewGroupName('');
     setNewGroupDesc('');
+    setGroupLink('');
     setShowForm(false);
+    setShowType(false);
+  };
+
+  const handleSubmitJoin = (e) => {
+    e.preventDefault();
+    onJoinGroup(groupLink);
+    setNewGroupName('');
+    setNewGroupDesc('');
+    setGroupLink('');
+    setShowForm(false);
+    setShowType(false);
   };
 
   return (
-    <div>
-      <button onClick={() => setShowForm(!showForm)}>
-        {showForm ? 'Cancel' : 'New Group'}
-      </button>
+      <div>
+        <button onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancel' : 'New Group'}
+          {setShowType(false)}
+        </button>
+        <button onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancel' : 'Join Group'}
+          {setShowType(true)}
+        </button>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="group-form">
-          <input
-            type="text"
-            placeholder="Group name"
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            required
-          />
-          <textarea
-            placeholder="Description"
-            value={newGroupDesc}
-            onChange={(e) => setNewGroupDesc(e.target.value)}
-          />
-          <button type="submit">Create Group</button>
-        </form>
-      )}
+        {showForm && !showType && (
+            <form onSubmit={handleSubmitJoin} className="group-form">
+              <input
+                  type="text"
+                  placeholder="Group name"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  required
+              />
+              <textarea
+                  placeholder="Description"
+                  value={newGroupDesc}
+                  onChange={(e) => setNewGroupDesc(e.target.value)}
+              />
+              <button type="submit">Create Group</button>
+            </form>
+        )}
 
-      <div className="groups-list">
-        {groups.map(group => (
-          <div
-            key={group.id}
-            className="group-item"
-            onClick={() => onGroupSelect(group)}
-          >
-            <h3>{group.name}</h3>
-            <p>{group.description}</p>
-          </div>
-        ))}
+        {showForm && showType && (
+            <form onSubmit={handleSubmit} className="group-form">
+              <input
+                  type="text"
+                  placeholder="Group link"
+                  value={groupLink}
+                  onChange={(e) => setGroupLink(e.target.value)}
+                  required
+              />
+              <button type="submit">Join Group</button>
+            </form>
+        )}
+
+        <div className="groups-list">
+          {groups.map(group => (
+              <div
+                  key={group.id}
+                  className="group-item"
+                  onClick={() => onGroupSelect(group)}
+              >
+                <h3>{group.name}</h3>
+                <p>{group.description}</p>
+              </div>
+          ))}
+        </div>
       </div>
-    </div>
   );
 }
 
 
 // Form to add new expenses
-function ExpenseForm({ groupId, onExpenseAdded, onCancel }) {
+function ExpenseForm({groupId, onExpenseAdded, onCancel}) {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');

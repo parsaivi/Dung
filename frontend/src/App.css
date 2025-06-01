@@ -66,10 +66,29 @@
   justify-content: space-between;
   align-items: center;
 }
-
 .form-buttons {
   display: flex;
   gap: 10px;
+}
+
+.expenses-section {
+  display: flex;
+  gap: 2px;
+}
+
+.group-members{
+  margin-left: auto;
+  margin-right: 30px;
+}
+
+.group-buttons{
+  gap: 10px;
+}
+
+.member-form{
+    display: flex;
+    background: #e6e3e3;
+    gap: 16px;
 }
 
 button {

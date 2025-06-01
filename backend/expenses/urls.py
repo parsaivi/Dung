@@ -13,3 +13,5 @@ urlpatterns = [
     path('auth/profile/', views.profile_view, name='profile'),
     path('', include(router.urls)),
 ]
+
+#path('groups/join/', views.join_group, name='join_group'),
