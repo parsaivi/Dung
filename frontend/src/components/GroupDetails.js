@@ -28,6 +28,7 @@ function GroupDetail({user, group, expenses, onExpenseAdded, onMemberAdded}) {
                 {showExpenseForm && (
                     <ExpenseForm
                         groupId={group.id}
+                        groups={[group]}
                         onExpenseAdded={onExpenseAdded}
                         onCancel={() => setShowExpenseForm(false)}
                     />

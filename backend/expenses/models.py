@@ -12,8 +12,8 @@ class Group(models.Model):
         return self.name
 class Expense(models.Model):
     title = models.CharField(max_length=200)
+    icon = models.CharField(max_length=50, blank=True, default='default-icon')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='expenses_paid')
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     participants = models.ManyToManyField(User, through='ExpenseShare')
     date = models.DateTimeField(auto_now_add=True)
@@ -26,9 +26,6 @@ class ExpenseShare(models.Model):
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount_owed = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        unique_together = ('expense', 'user')
 
 class Friend(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friends')
@@ -51,3 +48,14 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"Friend request from {self.from_user.username} to {self.to_user.username}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    bio = models.TextField(blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    telegram_username = models.CharField(max_length=100, blank=True, null=True)
+    telegram_notification = models.BooleanField(default=False)
+    email_notification = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
